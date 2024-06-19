@@ -114,10 +114,16 @@ function drawLine(yPos, leftText, rightText, active)
 end
 
 function drawMenu()
-  for i=active_control_index, #controls do
+  for i=1, #controls do
     local control = controls[i]
+    local yPos = 0
+    if active_control_index < 4 then
+      yPos = (i - 1) * 10
+    else
+      yPos = ((i - active_control_index + 3) * 10)
+    end
     drawLine(
-      ((i - active_control_index) * 10),
+      yPos,
       control.name,
       params:get(control.id),
       active_control_index == i
