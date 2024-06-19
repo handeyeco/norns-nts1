@@ -5,15 +5,43 @@ controls = {
   { name = "osc shape", cc = 54, id = "osc-shape", default = 0 },
   { name = "osc alt", cc = 55, id = "osc-alt", default = 0 },
   { name = "osc lfo rate", cc = 24, id = "osc-lfo-rate", default = 0 },
-  { name = "osc lfo depth", cc = 26, id = "osc-lfo-depth", default = 0 },
+  { name = "osc lfo depth", cc = 26, id = "osc-lfo-depth", default = 64 },
+
   { name = "filt type", cc = 42, id = "filt-type", default = 0 },
-  { name = "filt cutoff", cc = 43, id = "filt-cutoff", default = 0 },
-  { name = "filt resonance", cc = 55, id = "filt-resonance", default = 0 },
+  { name = "filt cutoff", cc = 43, id = "filt-cutoff", default = 127 },
+  { name = "filt resonance", cc = 44, id = "filt-resonance", default = 0 },
+  { name = "filt sweep depth", cc = 45, id = "filt-sweep-depth", default = 64 },
+  { name = "filt sweep rate", cc = 46, id = "filt-sweep-rate", default = 0 },
+
+  { name = "eg type", cc = 14, id = "eg-type", default = 0 },
+  { name = "eg attack", cc = 16, id = "eg-attack", default = 0 },
+  { name = "eg release", cc = 19, id = "eg-release", default = 64 },
+  { name = "trem rate", cc = 20, id = "trem-rate", default = 0 },
+  { name = "trem depth", cc = 21, id = "trem-depth", default = 0 },
+
+  { name = "mod type", cc = 88, id = "mod-type", default = 0 },
+  { name = "mod time", cc = 28, id = "mod-time", default = 64 },
+  { name = "mod depth", cc = 29, id = "mod-depth", default = 64 },
+
+  { name = "delay type", cc = 89, id = "delay-type", default = 0 },
+  { name = "delay time", cc = 30, id = "delay-time", default = 64 },
+  { name = "delay depth", cc = 31, id = "delay-depth", default = 64 },
+  { name = "delay mix", cc = 33, id = "delay-mix", default = 64 },
+
+  { name = "reverb type", cc = 90, id = "reverb-type", default = 0 },
+  { name = "reverb time", cc = 34, id = "reverb-time", default = 64 },
+  { name = "reverb depth", cc = 35, id = "reverb-depth", default = 64 },
+  { name = "reverb mix", cc = 36, id = "reverb-mix", default = 64 },
+
+  { name = "arp pattern", cc = 117, id = "arp-pattern", default = 64 },
+  { name = "arp interval", cc = 118, id = "arp-interval", default = 64 },
+  { name = "arp length", cc = 119, id = "arp-length", default = 64 },
 }
 
-page = 0
+page = 1
 
 active_control_index = 1
+confirming_reset_values = false
 confirming_send_values = false
 confirming_random_patch = false
 
@@ -80,6 +108,15 @@ function drawMenu()
   end
 end
 
+function drawHelp()
+  drawLine(0, "all pages", "", false)
+  drawLine(10, "", "e1:page e2:select e3:change", false)
+  drawLine(20, "nts-1 page", "", false)
+  drawLine(30, "", "k2:send k3:random", false)
+  drawLine(40, "this page", "", false)
+  drawLine(50, "", "k2:reset", false)
+end
+
 function drawMidiOptions()
   drawLine(0, "in:", in_midi_index .. " " .. midi.devices[in_midi_index].name, active_midi_index==1)
   drawLine(10, "in ch:", in_midi_channel, active_midi_index==2)
@@ -103,9 +140,13 @@ function redraw()
     confirm("send all values?")
   elseif confirming_random_patch then
     confirm("create random patch?")
+  elseif confirming_reset_values then
+    confirm("reset all values?")
   elseif page == 0 then
-    drawMenu()
+    drawHelp()
   elseif page == 1 then
+    drawMenu()
+  elseif page == 2 then
     drawMidiOptions()
   end
   screen.update()
@@ -140,10 +181,11 @@ end
 
 function enc(n,d)
   if (n == 1) then
-    page = util.clamp(page + d, 0, 1)
-  elseif (page == 0) then
-    handleMenuEncoder(n,d)
+    resetConfirm()
+    page = util.clamp(page + d, 0, 2)
   elseif (page == 1) then
+    handleMenuEncoder(n,d)
+  elseif (page == 2) then
     handleMidiEncoder(n,d)
   end
   redraw()
@@ -159,25 +201,53 @@ function randomPatch()
   end
 end
 
-function handleMenuKey(n,z)
-  if n == 2 and z == 1 then
-    if confirming_send_values or confirming_random_patch then
-      confirming_send_values = false
-      confirming_random_patch = false
-    else
-      confirming_send_values = true
+function resetParams()
+  for _, control in pairs(controls) do
+    params:set(control.id, control.default)
+  end
+end
+
+function resetConfirm()
+  confirming_reset_values = false
+  confirming_send_values = false
+  confirming_random_patch = false
+end
+
+function handleHelpKey(n,z)
+  if z == 1 then
+    if n == 2 then
+      if confirming_reset_values then
+        resetConfirm()
+      else
+        confirming_reset_values = true
+      end
+    elseif n == 3 then
+      if confirming_reset_values then
+        resetConfirm()
+        resetParams()
+      end
     end
-  elseif n==3 and z == 1 then
-    if confirming_send_values then
-      confirming_send_values = false
-      confirming_random_patch = false
-      sendValues()
-    elseif confirming_random_patch then
-      confirming_send_values = false
-      confirming_random_patch = false
-      randomPatch()
-    else
-      confirming_random_patch = true
+  end
+end
+
+function handleMenuKey(n,z)
+  if z == 1 then
+    if n == 2 then
+      if confirming_send_values or confirming_random_patch then
+        resetConfirm()
+      else
+        confirming_send_values = true
+      end
+    elseif n == 3 then
+      if confirming_send_values then
+        resetConfirm()
+        sendValues()
+      elseif confirming_random_patch then
+        resetConfirm()
+        randomPatch()
+      else
+        confirming_random_patch = true
+      end
     end
   end
 end
@@ -188,8 +258,10 @@ end
 
 function key(n,z)
   if (page == 0) then
-    handleMenuKey(n,z)
+    handleHelpKey(n,z)
   elseif (page == 1) then
+    handleMenuKey(n,z)
+  elseif (page == 2) then
     handleMidiKey(n,z)
   end
   redraw()
