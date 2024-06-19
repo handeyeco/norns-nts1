@@ -1,4 +1,21 @@
--- Korg NTS-1 (mk 1) Controller
+-- Control the
+-- Korg NTS-1 (mk 1)
+--
+-- by handeyeco
+--
+-- Guide
+--
+-- All screens:
+-- - E1: change page
+-- - E2: select parameter
+-- - E3: change parameter
+--
+-- Help screen:
+-- - K2: reset NTS-1 parameters
+--
+-- NTS-1 screen:
+-- - K2: send all parameters
+-- - K3: create random patch
 
 controls = {
   { name = "osc type", cc = 53, id = "osc-type", default = 0 },
